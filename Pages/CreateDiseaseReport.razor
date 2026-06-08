@@ -86,6 +86,15 @@
                     @errorMessage
                 </div>
             }
+
+            @if (!string.IsNullOrEmpty(successMessage))
+            {
+                <div class="alert alert-success">
+                    @successMessage
+                    <br />
+                    <small><a href="/disease-reports" class="btn btn-sm btn-success mt-2">Вернуться к списку</a></small>
+                </div>
+            }
         </EditForm>
     </div>
 </div>
@@ -93,6 +102,7 @@
 @code {
     private DiseaseReport model = new();
     private string? errorMessage;
+    private string? successMessage;
 
     private string GetDisplayName(string propertyName)
     {
@@ -104,6 +114,9 @@
 
     private async Task HandleValidSubmit()
     {
+        errorMessage = null;
+        successMessage = null;
+
         try
         {
             model.CreatedAt = DateTime.Now;
@@ -112,18 +125,20 @@
             DbContext.DiseaseReports.Add(model);
             await DbContext.SaveChangesAsync();
 
-            // Отправка email - ошибка отправки не должна нарушить сохранение
-            try
+            // Отправка email
+            bool emailSent = await EmailService.SendDiseaseReportCreatedAsync(model);
+
+            if (emailSent)
             {
-                await EmailService.SendDiseaseReportCreatedAsync(model);
+                successMessage = "✓ Донесение сохранено, email успешно отправлен.";
             }
-            catch (Exception emailEx)
+            else
             {
-                Console.WriteLine($"Ошибка при отправке email: {emailEx.Message}");
-                // Не прерываем выполнение, запись уже сохранена в БД
+                successMessage = "⚠ Донесение сохранено, но email не отправлен. Подробности в терминале.";
             }
 
-            Navigation.NavigateTo("/disease-reports");
+            // Сброс модели для создания новых донесений на одной странице без перезагрузки
+            model = new DiseaseReport();
         }
         catch (Exception ex)
         {
