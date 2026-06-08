@@ -4,9 +4,11 @@
 
 @using Blazor1.Data
 @using Blazor1.Models
+@using Blazor1.Services
 @using System.ComponentModel.DataAnnotations
 @inject ApplicationDbContext DbContext
 @inject NavigationManager Navigation
+@inject EmailService EmailService
 
 <h1>Новое донесение об особо опасной болезни животного</h1>
 
@@ -109,6 +111,17 @@
             
             DbContext.DiseaseReports.Add(model);
             await DbContext.SaveChangesAsync();
+
+            // Отправка email - ошибка отправки не должна нарушить сохранение
+            try
+            {
+                await EmailService.SendDiseaseReportCreatedAsync(model);
+            }
+            catch (Exception emailEx)
+            {
+                Console.WriteLine($"Ошибка при отправке email: {emailEx.Message}");
+                // Не прерываем выполнение, запись уже сохранена в БД
+            }
 
             Navigation.NavigateTo("/disease-reports");
         }
