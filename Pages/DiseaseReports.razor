@@ -4,8 +4,11 @@
 
 @using Blazor1.Data
 @using Blazor1.Models
+@using Blazor1.Services
 @inject ApplicationDbContext DbContext
 @inject NavigationManager Navigation
+@inject WordExportService ExportService
+@inject IJSRuntime JSRuntime
 
 <h1>Донесения об особо опасных болезнях животных</h1>
 
@@ -58,6 +61,9 @@ else
                             <a href="/disease-reports/edit/@report.Id" class="btn btn-sm btn-warning">
                                 <span class="oi oi-pencil" aria-hidden="true"></span> Редактировать
                             </a>
+                            <button type="button" class="btn btn-sm btn-info" @onclick="() => ExportToWord(report)">
+                                <span class="oi oi-document" aria-hidden="true"></span> Word
+                            </button>
                             <button type="button" class="btn btn-sm btn-danger" @onclick="() => DeleteReport(report.Id)">
                                 <span class="oi oi-trash" aria-hidden="true"></span> Удалить
                             </button>
@@ -106,6 +112,20 @@ else
         return false;
     }
 
-    [Inject]
-    private IJSRuntime? JSRuntime { get; set; }
+    private async Task ExportToWord(DiseaseReport report)
+    {
+        try
+        {
+            var documentBytes = ExportService.GenerateDiseaseReportDocument(report);
+            var base64String = Convert.ToBase64String(documentBytes);
+            var fileName = $"Донесение_{report.District}_{report.ReportDate:yyyyMMdd}.docx";
+            
+            await JSRuntime.InvokeVoidAsync("downloadFile", fileName, base64String);
+        }
+        catch (Exception ex)
+        {
+            // In production, you would show an error message to the user
+            Console.WriteLine($"Ошибка при экспорте: {ex.Message}");
+        }
+    }
 }
