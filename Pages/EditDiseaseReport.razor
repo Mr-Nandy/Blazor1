@@ -1,0 +1,143 @@
+@page "/disease-reports/edit/{id:int}"
+
+<PageTitle>Редактирование донесения</PageTitle>
+
+@using Blazor1.Data
+@using Blazor1.Models
+@using System.ComponentModel.DataAnnotations
+@inject ApplicationDbContext DbContext
+@inject NavigationManager Navigation
+
+@if (model == null)
+{
+    <div class="alert alert-danger">
+        Донесение не найдено.
+    </div>
+}
+else
+{
+    <h1>Редактирование донесения об особо опасной болезни животного</h1>
+
+    <div class="row">
+        <div class="col-md-8">
+            <EditForm Model="@model" OnValidSubmit="@HandleValidSubmit" OnInvalidSubmit="@HandleInvalidSubmit">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <div class="mb-3">
+                    <label for="district" class="form-label">@GetDisplayName(nameof(DiseaseReport.District))</label>
+                    <InputText id="district" class="form-control" @bind-Value="model.District" placeholder="Введите район" />
+                    <ValidationMessage For="@(() => model.District)" class="text-danger" />
+                </div>
+
+                <div class="mb-3">
+                    <label for="reportDate" class="form-label">@GetDisplayName(nameof(DiseaseReport.ReportDate))</label>
+                    <InputDate id="reportDate" class="form-control" @bind-Value="model.ReportDate" />
+                    <ValidationMessage For="@(() => model.ReportDate)" class="text-danger" />
+                </div>
+
+                <div class="mb-3">
+                    <label for="diseaseName" class="form-label">@GetDisplayName(nameof(DiseaseReport.DiseaseName))</label>
+                    <InputText id="diseaseName" class="form-control" @bind-Value="model.DiseaseName" placeholder="Введите название болезни" />
+                    <ValidationMessage For="@(() => model.DiseaseName)" class="text-danger" />
+                </div>
+
+                <div class="mb-3">
+                    <label for="animalType" class="form-label">@GetDisplayName(nameof(DiseaseReport.AnimalType))</label>
+                    <InputText id="animalType" class="form-control" @bind-Value="model.AnimalType" placeholder="Введите вид животного" />
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="sickCount" class="form-label">@GetDisplayName(nameof(DiseaseReport.SickCount))</label>
+                            <InputNumber id="sickCount" class="form-control" @bind-Value="model.SickCount" />
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="deadCount" class="form-label">@GetDisplayName(nameof(DiseaseReport.DeadCount))</label>
+                            <InputNumber id="deadCount" class="form-control" @bind-Value="model.DeadCount" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="location" class="form-label">@GetDisplayName(nameof(DiseaseReport.Location))</label>
+                    <InputText id="location" class="form-control" @bind-Value="model.Location" placeholder="Введите место обнаружения" />
+                </div>
+
+                <div class="mb-3">
+                    <label for="description" class="form-label">@GetDisplayName(nameof(DiseaseReport.Description))</label>
+                    <InputTextArea id="description" class="form-control" @bind-Value="model.Description" placeholder="Введите описание" rows="4"></InputTextArea>
+                </div>
+
+                <div class="mb-3">
+                    <label for="responsiblePerson" class="form-label">@GetDisplayName(nameof(DiseaseReport.ResponsiblePerson))</label>
+                    <InputText id="responsiblePerson" class="form-control" @bind-Value="model.ResponsiblePerson" placeholder="Введите имя ответственного лица" />
+                </div>
+
+                <div class="mb-3">
+                    <button type="submit" class="btn btn-primary">
+                        <span class="oi oi-check" aria-hidden="true"></span> Сохранить
+                    </button>
+                    <a href="/disease-reports" class="btn btn-secondary">
+                        <span class="oi oi-x" aria-hidden="true"></span> Отмена
+                    </a>
+                </div>
+
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="alert alert-danger">
+                        @errorMessage
+                    </div>
+                }
+            </EditForm>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private DiseaseReport? model;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var report = DbContext.DiseaseReports.FirstOrDefault(x => x.Id == Id);
+        if (report != null)
+        {
+            model = report;
+        }
+    }
+
+    private string GetDisplayName(string propertyName)
+    {
+        var property = typeof(DiseaseReport).GetProperty(propertyName);
+        var displayAttribute = property?.GetCustomAttributes(typeof(System.ComponentModel.DataAnnotations.DisplayAttribute), false)
+            .FirstOrDefault() as System.ComponentModel.DataAnnotations.DisplayAttribute;
+        return displayAttribute?.Name ?? propertyName;
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        try
+        {
+            DbContext.DiseaseReports.Update(model!);
+            await DbContext.SaveChangesAsync();
+
+            Navigation.NavigateTo("/disease-reports");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Ошибка при сохранении: {ex.Message}";
+        }
+    }
+
+    private Task HandleInvalidSubmit()
+    {
+        return Task.CompletedTask;
+    }
+}

@@ -39,6 +39,7 @@ else
                     <th>Павшие</th>
                     <th>Место выявления</th>
                     <th>Ответственный</th>
+                    <th>Действия</th>
                 </tr>
             </thead>
             <tbody>
@@ -53,6 +54,14 @@ else
                         <td>@report.DeadCount</td>
                         <td>@report.Location</td>
                         <td>@report.ResponsiblePerson</td>
+                        <td>
+                            <a href="/disease-reports/edit/@report.Id" class="btn btn-sm btn-warning">
+                                <span class="oi oi-pencil" aria-hidden="true"></span> Редактировать
+                            </a>
+                            <button type="button" class="btn btn-sm btn-danger" @onclick="() => DeleteReport(report.Id)">
+                                <span class="oi oi-trash" aria-hidden="true"></span> Удалить
+                            </button>
+                        </td>
                     </tr>
                 }
             </tbody>
@@ -65,6 +74,38 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        LoadReports();
+    }
+
+    private void LoadReports()
+    {
         reports = DbContext.DiseaseReports.OrderByDescending(x => x.ReportDate).ToList();
     }
+
+    private async Task DeleteReport(int id)
+    {
+        if (await ConfirmDelete())
+        {
+            var report = DbContext.DiseaseReports.FirstOrDefault(x => x.Id == id);
+            if (report != null)
+            {
+                DbContext.DiseaseReports.Remove(report);
+                await DbContext.SaveChangesAsync();
+                LoadReports();
+            }
+        }
+    }
+
+    private async Task<bool> ConfirmDelete()
+    {
+        // Simple confirmation - in production you'd use a proper dialog component
+        if (JSRuntime != null)
+        {
+            return await JSRuntime.InvokeAsync<bool>("confirm", "Вы уверены, что хотите удалить это донесение?");
+        }
+        return false;
+    }
+
+    [Inject]
+    private IJSRuntime? JSRuntime { get; set; }
 }
